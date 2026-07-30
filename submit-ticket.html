@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCTV Command Center - Submit Ticket</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { display: flex; justify-content: center; align-items: flex-start; padding: 40px 20px; min-height: 100vh; }
+        .form-card { max-width: 680px; width: 100%; }
+
+    </style>
+</head>
+<body>
+    <div style="width:100%;max-width:680px;">
+        <div class="form-card">
+            <div class="ticket-form-logo">
+                <img src="https://jiangnanhotpot.com/cdn/shop/files/jiangnan-logo-transparent_40f90d62-6f5e-4f34-9a1a-cf948a106904.png?v=1721972026" alt="Logo">
+                <div class="form-title">
+                    <h2>Submit Incident Ticket</h2>
+                    <p>Report an incident or issue at your branch</p>
+                </div>
+            </div>
+
+            <form id="ticketForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="branch">Branch <span style="color:var(--color-danger);">*</span></label>
+                        <select id="branch" required>
+                            <option value="">Select Branch</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="priority">Priority Level <span style="color:var(--color-danger);">*</span></label>
+                        <select id="priority" required>
+                            <option value="">Select Priority</option>
+                            <option value="Low">Low</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name">Name of Reporter <span style="color:var(--color-danger);">*</span></label>
+                        <input type="text" id="name" placeholder="Enter Full Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="position">Position</label>
+                        <input type="text" id="position" placeholder="Store Manager / Supervisor">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="contact">Contact Number <span style="color:var(--color-danger);">*</span></label>
+                        <input type="tel" id="contact" placeholder="09XXXXXXXXX" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" placeholder="example@email.com">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="datetime">Date & Time of Incident <span style="color:var(--color-danger);">*</span></label>
+                        <input type="text" id="datetime" placeholder="MM/DD/YYYY HH:MM" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="location">Specific Location <span style="color:var(--color-danger);">*</span></label>
+                        <input type="text" id="location" placeholder="Cashier / Dining Area / Kitchen" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="incident">Incident Type <span style="color:var(--color-danger);">*</span></label>
+                    <input type="text" id="incident" placeholder="Tip Pocketing / Pilferage / Overcharge" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Full Description <span style="color:var(--color-danger);">*</span></label>
+                    <textarea id="description" rows="5" placeholder="Describe the incident in detail..." required></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="reset" class="btn btn-secondary">Clear</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Submit Ticket</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="firebase.js"></script>
+    <script>
+        (function() {
+            var branchSelect = document.getElementById('branch');
+            var ticketForm = document.getElementById('ticketForm');
+
+            // REAL-TIME branch listener — syncs with main.html management page
+            db.collection('branches').onSnapshot(function(snapshot) {
+                var branches = [];
+                snapshot.forEach(function(doc) {
+                    branches.push({ id: doc.id, data: doc.data() });
+                });
+                branches.sort(function(a, b) {
+                    return (a.data.branchName || a.id).localeCompare(b.data.branchName || b.id);
+                });
+                var currentValue = branchSelect.value;
+                branchSelect.innerHTML = '<option value="">Select Branch</option>';
+                branches.forEach(function(branch) {
+                    var name = branch.data.branchName || branch.id;
+                    var opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    branchSelect.appendChild(opt);
+                });
+                if (currentValue && branches.some(function(b) { return (b.data.branchName || b.id) === currentValue; })) {
+                    branchSelect.value = currentValue;
+                }
+            }, function(err) {
+                console.error('Branch listener error:', err);
+                var fallback = ['Banawe','BF Homes','Eastwood','Fame','Gil Fernando','Hemady','Holy Spirit','MOA','Ortigas Center','Paseo','Promenade','SM Clark','SM Fairview','SM Marikina','SM Marilao','SM South Mall','SMDC Wind','SM East Ortigas','Sta. Rosa','SM Sucat','Tagaytay'];
+                branchSelect.innerHTML = '<option value="">Select Branch</option>';
+                fallback.forEach(function(name) {
+                    var opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    branchSelect.appendChild(opt);
+                });
+            });
+
+            // FORM SUBMIT
+            if (ticketForm) {
+                ticketForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    var branch = document.getElementById('branch').value;
+                    var priority = document.getElementById('priority').value;
+                    if (!branch) { alert('Please select a branch.'); return; }
+
+                    var branchCodes = {"Banawe":"bnw","BF Homes":"bf","Eastwood":"estw","Fame":"fame","Gil Fernando":"gilf","Hemady":"hmdy","Holy Spirit":"hspi","MOA":"moa","Ortigas Center":"ortc","Paseo":"pseo","Promenade":"prme","SM Clark":"smc","SM Fairview":"smf","SM Marikina":"smmk","SM Marilao":"smml","SM South Mall":"smsm","SMDC Wind":"smwd","SM East Ortigas":"smeo","Sta. Rosa":"str","SM Sucat":"smsu","Tagaytay":"tag"};
+                    var prefix = branchCodes[branch] || branch.toLowerCase().substring(0, 3);
+
+                    db.collection('tickets').get().then(function(snapshot) {
+                        var count = 1;
+                        snapshot.forEach(function(ticket) {
+                            if (ticket.id.startsWith(prefix + "-tix")) count++;
+                        });
+                        var number = String(count).padStart(3, "0");
+                        var ticketID = prefix + "-tix" + number;
+                        var ticketData = {
+                            ticketNumber: ticketID,
+                            branch: branch,
+                            name: document.getElementById('name').value,
+                            position: document.getElementById('position').value,
+                            contact: document.getElementById('contact').value,
+                            email: document.getElementById('email').value,
+                            datetime: document.getElementById('datetime').value,
+                            location: document.getElementById('location').value,
+                            incident: document.getElementById('incident').value,
+                            description: document.getElementById('description').value,
+                            priority: priority || 'Medium',
+                            status: 'Pending',
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        };
+                        return db.collection('tickets').doc(ticketID).set(ticketData);
+                    }).then(function() {
+                        alert('Ticket submitted successfully!');
+                        ticketForm.reset();
+                    }).catch(function(err) {
+                        console.error('Submit error:', err);
+                        alert('Failed to submit ticket. Try again.');
+                    });
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
