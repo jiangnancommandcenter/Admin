@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCTV Command Center - Submit Ticket</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <link rel="stylesheet" href="style.css">
+<style>
+        body { display: flex; justify-content: center; align-items: flex-start; padding: 40px 20px; min-height: 100vh; }
+        .form-card { max-width: 680px; width: 100%; }
+
+        /* ---- Track Ticket Modal Styles (Redesigned) ---- */
+
+/* Input wrapper — each field group */
+        .track-form-group {
+            flex: 1;
+            min-width: 0;
+        }
+        .track-input-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+        .track-form-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 7px;
+        }
+        .track-form-group label i {
+            color: var(--color-primary);
+            font-size: 0.85rem;
+            width: 16px;
+            text-align: center;
+        }
+
+        /* The input itself */
+        .track-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-input);
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 0.93rem;
+            transition: all 0.2s ease;
+            outline: none;
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+        }
+        .track-input:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+        }
+        .track-input::placeholder {
+            color: var(--text-muted);
+            font-size: 0.88rem;
+        }
+        .track-input.input-error {
+            border-color: var(--color-danger) !important;
+            box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12) !important;
+        }
+
+        /* Lookup button row */
+        .track-search-row {
+            margin-bottom: 6px;
+        }
+        .track-search-row .btn {
+            width: 100%;
+            padding: 13px 22px;
+            font-size: 0.95rem;
+            border-radius: 10px;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--color-primary), #4f46e5);
+            transition: all 0.25s ease;
+        }
+        .track-search-row .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+        }
+        .track-search-row .btn:active {
+            transform: translateY(0);
+        }
+
+        /* Validation error banner */
+        .track-validation-error {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            color: #b91c1c;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-top: 14px;
+            margin-bottom: 4px;
+            animation: fadeIn 0.25s ease;
+        }
+        .track-validation-error i {
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            color: #dc2626;
+        }
+
+        /* Result container */
+        .track-result {
+            animation: fadeIn 0.35s ease;
+            margin-top: 18px;
+        }
+        .track-result-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+        }
+
+        /* Header row: ticket ID + status badge */
+        .track-result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 22px;
+            background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary));
+            border-bottom: 1px solid var(--border-color);
+            gap: 12px;
+        }
+        .track-ticket-id {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-family: 'SF Mono', 'Fira Code', 'Inter', monospace;
+            letter-spacing: 0.3px;
+            word-break: break-all;
+        }
+        .track-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .track-status-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .track-status-badge.pending {
+            background: var(--color-pending-bg);
+            color: var(--color-pending);
+            border: 1px solid var(--color-pending-border);
+        }
+        .track-status-badge.pending::before { background: var(--color-pending); }
+        .track-status-badge.in-progress {
+            background: var(--color-progress-bg);
+            color: var(--color-progress);
+            border: 1px solid var(--color-progress-border);
+        }
+        .track-status-badge.in-progress::before { background: var(--color-progress); }
+        .track-status-badge.resolved {
+            background: var(--color-resolved-bg);
+            color: var(--color-resolved);
+            border: 1px solid var(--color-resolved-border);
+        }
+        .track-status-badge.resolved::before { background: var(--color-resolved); }
+
+        /* Result body grid */
+        .track-result-body {
+            padding: 18px 22px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        .track-field {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .track-field-full {
+            grid-column: span 2;
+        }
+        .track-field label {
+            font-size: 0.68rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .track-field label i {
+            font-size: 0.7rem;
+            color: var(--color-primary);
+        }
+        .track-field span {
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            word-break: break-word;
+            line-height: 1.45;
+            transition: background 0.15s ease;
+        }
+        .track-field span:hover {
+            background: var(--bg-hover);
+        }
+
+        /* Not found / error state */
+        .track-not-found {
+            text-align: center;
+            padding: 36px 20px 28px;
+            margin-top: 10px;
+        }
+        .track-not-found i {
+            font-size: 2.4rem;
+            display: block;
+            margin-bottom: 14px;
+            color: var(--color-danger);
+            opacity: 0.6;
+        }
+        .track-not-found p {
+            font-size: 0.92rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            max-width: 320px;
+            margin: 0 auto;
+        }
+
+        /* Loading spinner */
+        .track-loading {
+            text-align: center;
+            padding: 28px 20px;
+            color: var(--text-muted);
+            font-size: 0.92rem;
+            font-weight: 500;
+        }
+        .track-loading i {
+            margin-right: 10px;
+            font-size: 1.1rem;
+        }
+
+/* Responsive */
+        @media (max-width: 520px) {
+            .track-input-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            .track-result-body {
+                grid-template-columns: 1fr;
+                gap: 12px;
+                padding: 14px 16px;
+            }
+            .track-field-full {
+                grid-column: span 1;
+            }
+            .track-result-header {
+                padding: 14px 16px;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .track-ticket-id {
+                font-size: 0.95rem;
+            }
+        }
+        /* Animated shimmer for loading */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+    </style>
+</head>
+<body>
+    <div style="width:100%;max-width:680px;">
+        <div class="form-card">
+            <div class="ticket-form-logo" style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+                <div style="display:flex;align-items:center;gap:16px;">
+                    <img src="https://jiangnanhotpot.com/cdn/shop/files/jiangnan-logo-transparent_40f90d62-6f5e-4f34-9a1a-cf948a106904.png?v=1721972026" alt="Logo">
+                    <div class="form-title">
+                        <h2>Submit Incident Ticket</h2>
+                        <p>Report an incident or issue at your branch</p>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-secondary" id="trackTicketBtn" style="flex-shrink:0;">
+                    <i class="fas fa-search"></i> Track Ticket Status
+                </button>
+            </div>
+
+            <form id="ticketForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="branch">Branch <span style="color:var(--color-danger);">*</span></label>
+                        <select id="branch" required>
+                            <option value="">Select Branch</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="priority">Priority Level <span style="color:var(--color-danger);">*</span></label>
+                        <select id="priority" required>
+                            <option value="">Select Priority</option>
+                            <option value="Low">Low</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name">Name of Reporter <span style="color:var(--color-danger);">*</span></label>
+                        <input type="text" id="name" placeholder="Enter Full Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="position">Position</label>
+                        <input type="text" id="position" placeholder="Store Manager / Supervisor">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="contact">Contact Number <span style="color:var(--color-danger);">*</span></label>
+                        <input type="tel" id="contact" placeholder="09XXXXXXXXX" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" placeholder="example@email.com">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="datetime">Date & Time of Incident <span style="color:var(--color-danger);">*</span></label>
+                        <input type="text" id="datetime" placeholder="MM/DD/YYYY HH:MM" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="location">Specific Location <span style="color:var(--color-danger);">*</span></label>
+                        <input type="text" id="location" placeholder="Cashier / Dining Area / Kitchen" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="incident">Incident Type <span style="color:var(--color-danger);">*</span></label>
+                    <input type="text" id="incident" placeholder="Tip Pocketing / Pilferage / Overcharge" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Full Description <span style="color:var(--color-danger);">*</span></label>
+                    <textarea id="description" rows="5" placeholder="Describe the incident in detail..." required></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="reset" class="btn btn-secondary">Clear</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Submit Ticket</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<!-- Track Ticket Status Modal -->
+    <div class="modal-overlay" id="trackModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2><i class="fas fa-search"></i> Track Ticket Status</h2>
+                <button type="button" class="modal-close" id="closeTrackModal">&times;</button>
+            </div>
+<div class="modal-body">
+                <div class="track-input-row">
+                    <div class="track-form-group">
+                        <label for="trackTicketInput"><i class="fas fa-ticket-alt"></i> Ticket Number</label>
+                        <input type="text" id="trackTicketInput" class="track-input" placeholder="e.g. bnw-tix001" autocomplete="off">
+                    </div>
+                    <div class="track-form-group">
+                        <label for="trackContactInput"><i class="fas fa-envelope"></i> Contact/Email</label>
+                        <input type="text" id="trackContactInput" class="track-input" placeholder="Phone or email used" autocomplete="off">
+                    </div>
+                </div>
+                <div class="track-search-row">
+                    <button type="button" class="btn btn-primary" id="trackLookupBtn"><i class="fas fa-shield-alt"></i> Lookup Status</button>
+                </div>
+                <div id="trackValidationError" class="track-validation-error" style="display:none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="trackValidationMsg">Please fill in both fields.</span>
+                </div>
+                <div id="trackResult" class="track-result" style="display:none;">
+                    <div class="track-result-card">
+                        <div class="track-result-header">
+                            <span class="track-ticket-id" id="trackDisplayId"></span>
+                            <span class="track-status-badge" id="trackDisplayStatus"></span>
+                        </div>
+                        <div class="track-result-body">
+                            <div class="track-field">
+                                <label>Branch</label>
+                                <span id="trackDisplayBranch"></span>
+                            </div>
+                            <div class="track-field">
+                                <label>Incident Type</label>
+                                <span id="trackDisplayIncident"></span>
+                            </div>
+                            <div class="track-field">
+                                <label>Priority</label>
+                                <span id="trackDisplayPriority"></span>
+                            </div>
+                            <div class="track-field">
+                                <label>Reporter</label>
+                                <span id="trackDisplayReporter"></span>
+                            </div>
+                            <div class="track-field track-field-full">
+                                <label>Description</label>
+                                <span id="trackDisplayDescription"></span>
+                            </div>
+                    <div class="track-field track-field-full">
+                                <label>Last Updated</label>
+                                <span id="trackDisplayUpdated"></span>
+                            </div>
+                            <div class="track-field track-field-full">
+                                <label><i class="fas fa-paperclip"></i> Attachments</label>
+                                <span id="trackDisplayAttachments" style="padding:6px 10px;"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="trackNotFound" class="track-not-found" style="display:none;">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p id="trackNotFoundMsg">Ticket number and contact/email combination do not match. Please verify your credentials.</p>
+                </div>
+                <div class="track-loading" id="trackLoading" style="display:none;">
+                    <i class="fas fa-spinner fa-spin"></i> Verifying credentials...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="firebase.js"></script>
+    <script>
+        (function() {
+            var branchSelect = document.getElementById('branch');
+            var ticketForm = document.getElementById('ticketForm');
+
+            // REAL-TIME branch listener — syncs with main.html management page
+            db.collection('branches').onSnapshot(function(snapshot) {
+                var branches = [];
+                snapshot.forEach(function(doc) {
+                    branches.push({ id: doc.id, data: doc.data() });
+                });
+                branches.sort(function(a, b) {
+                    return (a.data.branchName || a.id).localeCompare(b.data.branchName || b.id);
+                });
+                var currentValue = branchSelect.value;
+                branchSelect.innerHTML = '<option value="">Select Branch</option>';
+                branches.forEach(function(branch) {
+                    var name = branch.data.branchName || branch.id;
+                    var opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    branchSelect.appendChild(opt);
+                });
+                if (currentValue && branches.some(function(b) { return (b.data.branchName || b.id) === currentValue; })) {
+                    branchSelect.value = currentValue;
+                }
+            }, function(err) {
+                console.error('Branch listener error:', err);
+                var fallback = ['Banawe','BF Homes','Eastwood','Fame','Gil Fernando','Hemady','Holy Spirit','MOA','Ortigas Center','Paseo','Promenade','SM Clark','SM Fairview','SM Marikina','SM Marilao','SM South Mall','SMDC Wind','SM East Ortigas','Sta. Rosa','SM Sucat','Tagaytay'];
+                branchSelect.innerHTML = '<option value="">Select Branch</option>';
+                fallback.forEach(function(name) {
+                    var opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    branchSelect.appendChild(opt);
+                });
+            });
+
+            // ---- TRACK TICKET STATUS MODAL (Two-Factor Verification) ----
+            var trackModal = document.getElementById('trackModal');
+            var trackBtn = document.getElementById('trackTicketBtn');
+            var closeTrackBtn = document.getElementById('closeTrackModal');
+            var trackInput = document.getElementById('trackTicketInput');
+            var trackContactInput = document.getElementById('trackContactInput');
+            var trackLookupBtn = document.getElementById('trackLookupBtn');
+            var trackResult = document.getElementById('trackResult');
+            var trackNotFound = document.getElementById('trackNotFound');
+            var trackNotFoundMsg = document.getElementById('trackNotFoundMsg');
+            var trackLoading = document.getElementById('trackLoading');
+            var trackValidationError = document.getElementById('trackValidationError');
+            var trackValidationMsg = document.getElementById('trackValidationMsg');
+
+            function hideValidationError() {
+                trackValidationError.style.display = 'none';
+                trackInput.classList.remove('input-error');
+                trackContactInput.classList.remove('input-error');
+            }
+
+            function openTrackModal() {
+                trackModal.classList.add('active');
+                trackInput.value = '';
+                trackContactInput.value = '';
+                trackResult.style.display = 'none';
+                trackNotFound.style.display = 'none';
+                trackLoading.style.display = 'none';
+                hideValidationError();
+                setTimeout(function() { trackInput.focus(); }, 100);
+            }
+
+            function closeTrackModalFn() {
+                trackModal.classList.remove('active');
+            }
+
+            if (trackBtn) trackBtn.addEventListener('click', openTrackModal);
+            if (closeTrackBtn) closeTrackBtn.addEventListener('click', closeTrackModalFn);
+            if (trackModal) {
+                trackModal.addEventListener('click', function(e) {
+                    if (e.target === trackModal) closeTrackModalFn();
+                });
+            }
+
+            function displayTicketData(data) {
+                document.getElementById('trackDisplayId').textContent = data.ticketNumber || '\u2014';
+                var statusEl = document.getElementById('trackDisplayStatus');
+                var status = data.status || 'Pending';
+                var statusClass = status.toLowerCase().replace(/\s+/g, '-');
+                statusEl.textContent = status;
+                statusEl.className = 'track-status-badge ' + statusClass;
+                document.getElementById('trackDisplayBranch').textContent = data.branch || '\u2014';
+                document.getElementById('trackDisplayIncident').textContent = data.incident || '\u2014';
+                document.getElementById('trackDisplayPriority').textContent = data.priority || '\u2014';
+                document.getElementById('trackDisplayReporter').textContent = data.name || '\u2014';
+                document.getElementById('trackDisplayDescription').textContent = data.description || '\u2014';
+                var updatedEl = document.getElementById('trackDisplayUpdated');
+                if (data.createdAt && data.createdAt.toDate) {
+                    var d = data.createdAt.toDate();
+                    updatedEl.textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                } else if (data.createdAt) {
+                    updatedEl.textContent = data.createdAt;
+                } else {
+                    updatedEl.textContent = '\u2014';
+                }
+                // Render attachments
+                var attachmentsEl = document.getElementById('trackDisplayAttachments');
+                var atts = data.attachments;
+                if (atts && atts.length > 0) {
+                    var html = '<div class="attachments-inline">';
+                    for (var i = 0; i < atts.length; i++) {
+                        var a = atts[i];
+                        var url = a.secure_url;
+                        var isImage = a.resource_type === 'image' || (a.format && /^(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(a.format));
+                        if (isImage) {
+                            html += '<a href="' + url + '" target="_blank" class="attachment-link" title="' + (a.public_id || 'Attachment') + '"><i class="fas fa-image"></i> View Image</a>';
+                        } else if (a.resource_type === 'video') {
+                            html += '<a href="' + url + '" target="_blank" class="attachment-link" title="' + (a.public_id || 'Attachment') + '"><i class="fas fa-video"></i> View Video</a>';
+                        } else {
+                            html += '<a href="' + url + '" target="_blank" class="attachment-link" title="' + (a.public_id || 'Attachment') + '"><i class="fas fa-file"></i> Download File</a>';
+                        }
+                    }
+                    html += '</div>';
+                    attachmentsEl.innerHTML = html;
+                } else {
+                    attachmentsEl.innerHTML = '\u2014';
+                }
+                trackResult.style.display = 'block';
+            }
+
+            function lookupTicket() {
+                hideValidationError();
+
+                var ticketNumber = trackInput.value.trim();
+                var contactValue = trackContactInput.value.trim();
+
+                // Validate both fields are filled
+                if (!ticketNumber && !contactValue) {
+                    trackValidationMsg.textContent = 'Please enter both a ticket number and your contact/email.';
+                    trackValidationError.style.display = 'flex';
+                    trackInput.classList.add('input-error');
+                    trackContactInput.classList.add('input-error');
+                    trackInput.focus();
+                    return;
+                }
+                if (!ticketNumber) {
+                    trackValidationMsg.textContent = 'Please enter your ticket number.';
+                    trackValidationError.style.display = 'flex';
+                    trackInput.classList.add('input-error');
+                    trackInput.focus();
+                    return;
+                }
+                if (!contactValue) {
+                    trackValidationMsg.textContent = 'Please enter your contact number or email used during submission.';
+                    trackValidationError.style.display = 'flex';
+                    trackContactInput.classList.add('input-error');
+                    trackContactInput.focus();
+                    return;
+                }
+
+                trackResult.style.display = 'none';
+                trackNotFound.style.display = 'none';
+                trackLoading.style.display = 'block';
+
+                // Lookup ticket by document ID (ticket number)
+                db.collection('tickets').doc(ticketNumber).get().then(function(doc) {
+                    trackLoading.style.display = 'none';
+
+                    if (!doc.exists) {
+                        trackNotFoundMsg.textContent = 'No ticket found with that number. Please check and try again.';
+                        trackNotFound.style.display = 'block';
+                        return;
+                    }
+
+                    var data = doc.data();
+                    // Two-factor verification: check contact OR email match
+                    var contactMatch = data.contact && data.contact.toLowerCase() === contactValue.toLowerCase();
+                    var emailMatch = data.email && data.email.toLowerCase() === contactValue.toLowerCase();
+
+                    if (contactMatch || emailMatch) {
+                        // Credentials verified — show result
+                        displayTicketData(data);
+                    } else {
+                        // Credentials do not match
+                        trackNotFoundMsg.textContent = 'Ticket number and contact/email combination do not match. Please verify your credentials.';
+                        trackNotFound.style.display = 'block';
+                    }
+                }).catch(function(err) {
+                    trackLoading.style.display = 'none';
+                    console.error('Lookup error:', err);
+                    trackNotFoundMsg.textContent = 'An error occurred while searching. Please try again.';
+                    trackNotFound.style.display = 'block';
+                });
+            }
+
+            if (trackLookupBtn) trackLookupBtn.addEventListener('click', lookupTicket);
+            if (trackInput) {
+                trackInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        trackContactInput.focus();
+                    }
+                });
+            }
+            if (trackContactInput) {
+                trackContactInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        lookupTicket();
+                    }
+                });
+            }
+
+            // FORM SUBMIT
+            if (ticketForm) {
+                ticketForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    var branch = document.getElementById('branch').value;
+                    var priority = document.getElementById('priority').value;
+                    if (!branch) { alert('Please select a branch.'); return; }
+
+                    var branchCodes = {"Banawe":"bnw","BF Homes":"bf","Eastwood":"estw","Fame":"fame","Gil Fernando":"gilf","Hemady":"hmdy","Holy Spirit":"hspi","MOA":"moa","Ortigas Center":"ortc","Paseo":"pseo","Promenade":"prme","SM Clark":"smc","SM Fairview":"smf","SM Marikina":"smmk","SM Marilao":"smml","SM South Mall":"smsm","SMDC Wind":"smwd","SM East Ortigas":"smeo","Sta. Rosa":"str","SM Sucat":"smsu","Tagaytay":"tag"};
+                    var prefix = branchCodes[branch] || branch.toLowerCase().substring(0, 3);
+
+                    db.collection('tickets').get().then(function(snapshot) {
+                        var count = 1;
+                        snapshot.forEach(function(ticket) {
+                            if (ticket.id.startsWith(prefix + "-tix")) count++;
+                        });
+                        var number = String(count).padStart(3, "0");
+                        var ticketID = prefix + "-tix" + number;
+                        var ticketData = {
+                            ticketNumber: ticketID,
+                            branch: branch,
+                            name: document.getElementById('name').value,
+                            position: document.getElementById('position').value,
+                            contact: document.getElementById('contact').value,
+                            email: document.getElementById('email').value,
+                            datetime: document.getElementById('datetime').value,
+                            location: document.getElementById('location').value,
+                            incident: document.getElementById('incident').value,
+                            description: document.getElementById('description').value,
+                            priority: priority || 'Medium',
+                            status: 'Pending',
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        };
+                        return db.collection('tickets').doc(ticketID).set(ticketData);
+                    }).then(function() {
+                        alert('Ticket submitted successfully!');
+                        ticketForm.reset();
+                    }).catch(function(err) {
+                        console.error('Submit error:', err);
+                        alert('Failed to submit ticket. Try again.');
+                    });
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
