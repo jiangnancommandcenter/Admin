@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Review Modal — Preview (Manager vs Operator)</title>
+    <style>
+        .modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;justify-content:center;align-items:center;font-family:'Inter',-apple-system,'Segoe UI',Roboto,Arial,sans-serif;padding:16px}
+        .modal-container{background:#fff;width:820px;max-width:100%;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.25);display:flex;flex-direction:column;max-height:92vh;overflow:hidden}
+        .modal-header{padding:18px 24px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+        .modal-header h2{margin:0;font-size:18px;color:#0f172a}
+        .status-chip{font-size:12px;font-weight:600;background:rgba(202,138,4,.12);color:#a16207;border:1px solid rgba(202,138,4,.35);padding:5px 12px;border-radius:999px}
+        .modal-body{padding:20px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:18px;background:#f1f5f9}
+        .report-card{background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:16px 20px;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+        .report-card.manager{border-left:5px solid #2563eb}
+        .report-card.operator{border-left:5px solid #16a34a}
+        .report-card h3{margin:0 0 12px;font-size:15px;color:#1e293b;border-bottom:1px solid #e9eef3;padding-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+        .report-card h3 .role-tag{font-size:12px;font-weight:600;padding:4px 11px;border-radius:999px;white-space:nowrap}
+        .report-card.manager h3 .role-tag{background:rgba(37,99,235,.1);color:#1d4ed8}
+        .report-card.operator h3 .role-tag{background:rgba(22,163,74,.12);color:#15803d}
+        .meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 18px;margin-bottom:12px}
+        .meta-group{min-width:0;font-size:13px;color:#0f172a}
+        .meta-group.full{grid-column:1/-1}
+        .meta-group label{font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;font-size:11px;display:block;margin-bottom:3px}
+        .meta-group p{margin:0;line-height:1.55;word-break:break-word}
+        .attachment-box{background:#f8fafc;padding:7px 12px;border-radius:6px;border:1px dashed #94a3b8;font-size:12.5px;display:inline-block;margin:4px 6px 0 0}
+        .attachment-box.manager{border-color:#93c5fd;background:#eff6ff}
+        .attachment-box.operator{border-color:#86efac;background:#f0fdf4}
+        .modal-footer{padding:14px 24px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:10px}
+        .btn{padding:10px 18px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+        .btn-approve{background:#16a34a;color:#fff}
+        .btn-approve:hover{background:#15803d}
+        .btn-reject{background:#dc2626;color:#fff}
+        .btn-reject:hover{background:#b91c1c}
+    </style>
+</head>
+<body>
+
+    <!-- Modal Structure -->
+    <div class="modal-overlay">
+        <div class="modal-container">
+
+            <!-- Header -->
+            <div class="modal-header">
+                <h2>&#128203; Review Ticket #TRK-2026-089</h2>
+                <span class="status-chip">&#9679; Status: Pending Approval</span>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body">
+
+                <!-- SECTION 1: MANAGER'S ORIGINAL REQUEST -->
+                <div class="report-card manager">
+                    <h3>
+                        <span>&#128100; Manager's Original Request</span>
+                        <span class="role-tag">Submitted by: John Doe</span>
+                    </h3>
+                    <div class="meta-grid">
+                        <div class="meta-group"><label>Ticket Number</label><p>TRK-2026-089</p></div>
+                        <div class="meta-group"><label>Branch</label><p>Jiangnan — Main Branch</p></div>
+                        <div class="meta-group"><label>Incident</label><p>Missing Package</p></div>
+                        <div class="meta-group"><label>Date &amp; Time</label><p>08/14/2026 3:00 PM</p></div>
+                        <div class="meta-group"><label>Location</label><p>Gate 3</p></div>
+                        <div class="meta-group full">
+                            <label>Issue Description</label>
+                            <p>CCTV footage requested for Gate 3 regarding a missing package incident reported yesterday afternoon.</p>
+                        </div>
+                    </div>
+                    <label class="meta-group full"><strong>Manager's Attachments</strong></label>
+                    <div>
+                        <span class="attachment-box manager">&#128206; incident_report.pdf</span>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: OPERATOR'S RESOLUTION AND FOOTAGE -->
+                <div class="report-card operator">
+                    <h3>
+                        <span>&#127909; Operator's Resolution Report</span>
+                        <span class="role-tag">Resolved by: Jane Smith (Operator)</span>
+                    </h3>
+                    <div class="meta-grid">
+                        <div class="meta-group"><label>Resolved By</label><p>Jane Smith</p></div>
+                        <div class="meta-group"><label>Resolved At</label><p>08/15/2026 10:12 AM</p></div>
+                        <div class="meta-group full">
+                            <label>Action Taken / Findings</label>
+                            <p>Reviewed camera logs from 2:00 PM to 4:00 PM. Found the specific footage showing the delivery driver misplacing the item.</p>
+                        </div>
+                    </div>
+                    <label class="meta-group full"><strong>Operator's Added Footage</strong></label>
+                    <div>
+                        <span class="attachment-box operator">&#127916; gate3_cctv_clip_04.mp4</span>
+                        <span class="attachment-box operator">&#128206; operator_log_notes.docx</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer / Actions for Super Admin -->
+            <div class="modal-footer">
+                <button class="btn btn-reject">&#10008; Reject Report</button>
+                <button class="btn btn-approve">&#10004; Approve Report</button>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Dashboard - CCTV Command Center</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <aside class="sidebar" id="ownerSidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <img src="https://jiangnanhotpot.com/cdn/shop/files/jiangnan-logo-transparent_40f90d62-6f5e-4f34-9a1a-cf948a106904.png?v=1721972026" alt="Jiangnan Logo" style="height:46px;width:auto;object-fit:contain;display:block;position:absolute;top:10px;left:50%;transform:translateX(-60%);">
+                <span class="logo-text" style="display:none;">Owner Dashboard</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav" id="ownerSidebarNav">
+            <button class="nav-item active" data-tab="overview">
+                <i class="fas fa-home"></i>
+                <span>Overview</span>
+            </button>
+            <button class="nav-item" data-tab="reports">
+                <i class="fas fa-file-alt"></i>
+                <span>Reports</span>
+            </button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="logout-btn-sidebar" id="ownerLogoutBtn">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <main class="main-content" id="ownerMainContent">
+        <header class="top-header owner-top-header">
+            <div class="header-left">
+                <h1 class="page-title" id="ownerPageTitle">Owner Dashboard</h1>
+                <span class="header-subtitle" id="ownerPageSubtitle">Manage reports and view permissions</span>
+            </div>
+            <div class="header-right">
+                <div class="header-auth-status owner-auth-status">
+                    <span class="auth-dot"></span>
+                    <span id="ownerUserEmail">Loading...</span>
+                    <span id="ownerUserRoleBadge" class="role-badge viewer">Loading…</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="tab-content active" id="tabOverview">
+            <div class="section-header owner-section-header">
+                <div>
+                    <h2>Owner Summary</h2>
+                    <p>View metrics and branches you can access.</p>
+                </div>
+                <div class="owner-toolbar">
+                    <div class="owner-filter-wrap">
+                        <label for="ownerBranchFilter">Branch</label>
+                        <select id="ownerBranchFilter"></select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="summary-cards summary-cards-6 owner-summary-grid" id="ownerKpiCards">
+                <div class="card card-total">
+                    <div class="card-icon"><i class="fas fa-calendar-check"></i></div>
+                    <div class="card-info">
+                        <div class="card-value" id="totalMonthlyReports">0</div>
+                        <div class="card-label">Total Monthly Reports</div>
+                    </div>
+                </div>
+                <div class="card card-online">
+                    <div class="card-icon"><i class="fas fa-file-alt"></i></div>
+                    <div class="card-info">
+                        <div class="card-value" id="totalAssignedReports">0</div>
+                        <div class="card-label">Total Assigned Reports</div>
+                    </div>
+                </div>
+                <div class="card card-pending">
+                    <div class="card-icon"><i class="fas fa-code-branch"></i></div>
+                    <div class="card-info">
+                        <div class="card-value" id="totalActiveBranches">0</div>
+                        <div class="card-label">Assigned Branches</div>
+                    </div>
+                </div>
+                <div class="card card-progress">
+                    <div class="card-icon"><i class="fas fa-user-shield"></i></div>
+                    <div class="card-info">
+                        <div class="card-value" id="accessLevelValue">—</div>
+                        <div class="card-label">My Access Level</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header owner-section-header owner-panel-header">
+                <div>
+                    <h2>Assigned Branches</h2>
+                    <p>Branches available for your account.</p>
+                </div>
+            </div>
+            <div class="owner-panel">
+                <div id="ownerBranchList" class="quick-status-list owner-branch-list"></div>
+                <div class="owner-permissions-block">
+                    <div class="owner-permissions-header">
+                        <h3>My Feature Permissions</h3>
+                    </div>
+                    <div id="ownerPermSummary" class="owner-permissions-summary"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="tab-content" id="tabReports">
+            <div class="section-header owner-section-header">
+                <div>
+                    <h2>Reports</h2>
+                    <p>All reports submitted by permitted branches.</p>
+                </div>
+                <div class="toolbar owner-toolbar">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input id="ownerReportSearch" type="search" placeholder="Search reports...">
+                    </div>
+                    <div class="filter-group owner-filter-group">
+                        <select id="ownerReportBranchFilter"></select>
+                    </div>
+                    <button class="btn btn-primary btn-sm" id="ownerRefreshReports">Refresh</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table" id="ownerReportsTable">
+                    <thead>
+                        <tr>
+                            <th>Report Name</th>
+                            <th>Author</th>
+                            <th>Date</th>
+                            <th>Branch</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ownerReportsBody">
+                        <tr><td colspan="5" class="empty-state"><em>Loading reports...</em></td></tr>
+                    </tbody>
+                </table>
+                <div class="pagination" id="ownerReportPagination">
+                    <span class="page-info">Loading...</span>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ============================================================ -->
+    <!-- MODAL: REPORT DETAILS                                        -->
+    <!-- ============================================================ -->
+    <div class="modal-overlay" id="ownerReportModal">
+        <div class="modal-container modal-lg">
+            <div class="modal-header">
+                <h2><i class="fas fa-file-alt"></i> <span>Report Details</span></h2>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span class="status-badge" id="ownerReportDetailsStatus" style="display:none;">Resolved</span>
+                    <button class="modal-close" id="closeOwnerReportModal">&times;</button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="approval-review-grid" id="ownerReportModalBody">
+                    <p style="color:var(--text-muted);">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="firebase.js"></script>
+    <script src="js/auth.js"></script>
+        <script src="js/notifications.js"></script>
+    <!-- Refresh-state manager: keeps the user on the current tab/modal after F5 -->
+    <script src="js/refresh-state.js"></script>
+    <script src="js/owner-dashboard.js"></script>
+</body>
+</html>
