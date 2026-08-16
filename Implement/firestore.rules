@@ -1,0 +1,125 @@
+rules_version = '2';
+
+// =============================================================
+//  CCTV Command Center — Firestore Security Rules (skeleton)
+//  Project: jn-data-f29ae
+//
+//  ⚠️ IMPORTANT
+//  These rules mirror what the current app code DOES today, so
+//  deploying them must NOT break any existing flow. Several rules
+//  are intentionally open because submit-ticket.html runs without
+//  requiring a login. Review every "TODO (security)" comment and
+//  tighten once the app moves behind auth + Cloud Functions.
+//
+//  Test before deploying:
+//    firebase emulators:exec --only firestore "firebase emulators:exec --only firestore --timeout 5m"
+//    firebase deploy --only firestore:rules
+// =============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------- Helpers ----------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Email/password sign-in exposes the user's email on the auth token.
+    function selfEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    // The user's role lives on their own profile doc: users/<email>.
+    // isSuperAdmin() reads that doc inside the rules engine, so no custom
+    // claims are required. (Self-read of users/<email> is allowed below.)
+    function isSuperAdmin() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(selfEmail())).data.role == 'superadmin';
+    }
+
+    // ---------------- branches ----------------
+    // Public read: the submit-ticket form and both dashboards show the list.
+    // Only superadmins add/delete branches; any signed-in user may push the
+    // currentStatus update that happens when a status log is recorded.
+
+    match /branches/{branchId} {
+      allow read: if true;
+      allow create: if isSuperAdmin();
+      allow update: if isSignedIn();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ---------------- status_logs ----------------
+    // Operators and superadmins record status; only superadmins edit/delete.
+
+    match /status_logs/{logId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // ---------------- tickets ----------------
+
+    match /tickets/{ticketId} {
+      // Public submission form — creation is open on purpose.
+      allow create: if true;
+
+      // Signed-in users (operators / superadmins / owners) read all tickets.
+      // Public "Track Ticket Status" lookup reads ONLY approved tickets.
+      allow read: if isSignedIn() || resource.data.approvalStatus == 'approved';
+
+      // TODO (security): the public "Request Additional Footage" flow
+      // updates a ticket without a login, so update is currently open to
+      // match the app. Prefer a rate-limited Cloud Function + per-ticket
+      // share token so anonymous users cannot mutate arbitrary tickets.
+      allow update: if true;
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // ---------------- counters ----------------
+    // Per-branch ticket numbering (`counters/tickets-<prefix>`) is
+    // transactionally incremented by the public ticket form.
+
+    match /counters/{counterId} {
+      // TODO (security): keep this open only while ticket submission is
+      // login-free. A Cloud Function should own the counter once auth is
+      // enforced (then allow read/write: if (isSignedIn())).
+      allow read, write: if true;
+    }
+
+    // ---------------- users ----------------
+    // users/<email> is the profile document created during registration
+    // (role 'owner', status 'pending') and later approved by a superadmin.
+
+    match /users/{userId} {
+      function isSelf() {
+        return isSignedIn() && userId == selfEmail();
+      }
+
+      // Registration creates ONLY the requester's own profile and only in
+      // the 'pending' owner state — a normal user can never self-register
+      // as anything but a pending owner.
+      allow create: if isSelf()
+        && request.resource.data.role == 'owner'
+        && request.resource.data.status == 'pending';
+
+      allow read: if isSuperAdmin() || isSelf();
+
+      // Superadmins may edit anything (approvals). Self-edits are allowed
+      // but can never touch role/status/permissions (no privilege escalation).
+      allow update: if isSuperAdmin()
+        || (isSelf() && !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['role', 'status', 'permissions']));
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // ---------------- catch-all: deny everything else ----------------
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

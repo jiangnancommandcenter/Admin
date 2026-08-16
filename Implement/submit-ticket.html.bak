@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCTV Command Center - Submit Ticket</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <link rel="stylesheet" href="style.css">
+<style>
+        body { display: flex; justify-content: center; align-items: flex-start; padding: 40px 20px; min-height: 100vh; }
+        .form-card { max-width: 680px; width: 100%; }
+
+        /* ---- Track Ticket Modal Styles (Redesigned) ---- */
+
+/* Input wrapper — each field group */
+        .track-form-group {
+            flex: 1;
+            min-width: 0;
+        }
+        .track-input-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+        .track-form-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 7px;
+        }
+        .track-form-group label i {
+            color: var(--color-primary);
+            font-size: 0.85rem;
+            width: 16px;
+            text-align: center;
+        }
+
+        /* The input itself */
+        .track-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-input);
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 0.93rem;
+            transition: all 0.2s ease;
+            outline: none;
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+        }
+        .track-input:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+        }
+        .track-input::placeholder {
+            color: var(--text-muted);
+            font-size: 0.88rem;
+        }
+        .track-input.input-error {
+            border-color: var(--color-danger) !important;
+            box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12) !important;
+        }
+
+        /* Lookup button row */
+        .track-search-row {
+            margin-bottom: 6px;
+        }
+        .track-search-row .btn {
+            width: 100%;
+            padding: 13px 22px;
+            font-size: 0.95rem;
+            border-radius: 10px;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--color-primary), #4f46e5);
+            transition: all 0.25s ease;
+        }
+        .track-search-row .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+        }
+        .track-search-row .btn:active {
+            transform: translateY(0);
+        }
+
+        /* Validation error banner */
+        .track-validation-error {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            color: #b91c1c;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-top: 14px;
+            margin-bottom: 4px;
+            animation: fadeIn 0.25s ease;
+        }
+        .track-validation-error i {
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            color: #dc2626;
+        }
+
+        /* ---- Request Additional Footage ---- */
+        .track-footage-header {
+            margin: 6px 0 8px;
+        }
+        .track-footage-header .btn {
+            gap: 8px;
+        }
+        #trackFootageBox {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 14px;
+        }
+        #trackFootageBox label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            align-self: flex-start;
+            margin: 0;
+        }
+        #trackFootageBox textarea.track-input {
+            min-height: 90px;
+            max-height: 220px;
+            resize: vertical;
+        }
+        .track-footage-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        .track-footage-actions .btn {
+            min-width: 110px;
+        }
+        .track-success-notice {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+            border: 1px solid #a7f3d0;
+            border-radius: 10px;
+            color: #065f46;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-top: 14px;
+            animation: fadeIn 0.25s ease;
+        }
+        .track-success-notice i {
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            color: #16a34a;
+        }
+        .track-footage-history {
+            margin-top: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .track-footage-history .footage-note {
+            padding: 10px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-left: 3px solid var(--color-warning);
+            border-radius: 8px;
+            font-size: 0.83rem;
+        }
+        .track-footage-history .footage-note-text {
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .track-footage-history .footage-note-meta {
+            font-size: 0.74rem;
+            color: var(--text-muted);
+        }
+        /* Result container */
+
+        /* Result container */
+        .track-result {
+            animation: fadeIn 0.35s ease;
+            margin-top: 18px;
+        }
+        .track-result-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+        }
+
+        /* Header row: ticket ID + status badge */
+        .track-result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 22px;
+            background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary));
+            border-bottom: 1px solid var(--border-color);
+            gap: 12px;
+        }
+        .track-ticket-id {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-family: 'SF Mono', 'Fira Code', 'Inter', monospace;
+            letter-spacing: 0.3px;
+            word-break: break-all;
+        }
+        .track-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .track-status-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .track-status-badge.pending {
+            background: var(--color-pending-bg);
+            color: var(--color-pending);
+            border: 1px solid var(--color-pending-border);
+        }
+        .track-status-badge.pending::before { background: var(--color-pending); }
+        .track-status-badge.in-progress {
+            background: var(--color-progress-bg);
+            color: var(--color-progress);
+            border: 1px solid var(--color-progress-border);
+        }
+        .track-status-badge.in-progress::before { background: var(--color-progress); }
+        .track-status-badge.resolved {
+            background: var(--color-resolved-bg);
+            color: var(--color-resolved);
+            border: 1px solid var(--color-resolved-border);
+        }
+        .track-status-badge.resolved::before { background: var(--color-resolved); }
+        .track-status-badge.pending-approval {
+            background: var(--color-warning-bg);
+            color: var(--color-warning);
+            border: 1px solid var(--color-warning-border);
+        }
+        .track-status-badge.pending-approval::before { background: var(--color-warning); }
+        .track-status-badge.for-revision {
+            background: var(--color-danger-bg);
+            color: var(--color-danger);
+            border: 1px solid var(--color-offline-border);
+        }
+        .track-status-badge.for-revision::before { background: var(--color-danger); }
+
+        /* Result body grid */
+        .track-result-body {
+            padding: 18px 22px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        .track-field {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .track-field-full {
+            grid-column: span 2;
+        }
+        .track-field label {
+            font-size: 0.68rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .track-field label i {
+            font-size: 0.7rem;
+            color: var(--color-primary);
+        }
+        .track-field span {
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            word-break: break-word;
+            line-height: 1.45;
+            transition: background 0.15s ease;
+        }
+        .track-field span:hover {
+            background: var(--bg-hover);
+        }
+
+
+/* Inline attachment media previews (images/videos) */
+        .attachments-inline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            width: 100%;
+        }
+        .track-attachment-media {
+            max-width: 100%;
+            width: 100%;
+            height: auto;
+            max-height: 320px;
+            object-fit: contain;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            display: block;
+        }
+        .track-attachment-media.video,
+        video.track-attachment-media {
+            max-height: 300px;
+            background: #000;
+        }
+
+        /* Not found / error state */
+        .track-not-found {
+            text-align: center;
+            padding: 36px 20px 28px;
+            margin-top: 10px;
+        }
+        .track-not-found i {
+            font-size: 2.4rem;
+            display: block;
+            margin-bottom: 14px;
+            color: var(--color-danger);
+            opacity: 0.6;
+        }
+        .track-not-found p {
+            font-size: 0.92rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            max-width: 320px;
+            margin: 0 auto;
+        }
+
+        /* Loading spinner */
+        .track-loading {
+            text-align: center;
+            padding: 28px 20px;
+            color: var(--text-muted);
+            font-size: 0.92rem;
+            font-weight: 500;
+        }
+        .track-loading i {
+            margin-right: 10px;
+            font-size: 1.1rem;
+        }
+
+/* Responsive */
+        @media (max-width: 520px) {
+            .track-input-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            .track-result-body {
+                grid-template-columns: 1fr;
+                gap: 12px;
+                padding: 14px 16px;
+            }
+            .track-field-full {
+                grid-column: span 1;
+            }
+            .track-result-header {
+                padding: 14px 16px;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .track-ticket-id {
+                font-size: 0.95rem;
+            }
+        }
+        /* Animated shimmer for loading */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        /* ---- SUCCESS MODAL (Ticket Submitted) ---- */
+        .success-modal {
+            max-width: 460px;
+        }
+        .success-modal-body {
+            text-align: center;
+            padding: 28px 26px;
+        }
+        .success-icon {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 16px;
+            border-radius: 50%;
+            background: var(--color-resolved-bg);
+            border: 2px solid var(--color-resolved-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: var(--color-resolved);
+        }
+        .success-message {
+            font-size: 0.92rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 20px;
+            max-width: 360px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .ticket-number-wrap {
+            text-align: left;
+            margin-bottom: 12px;
+        }
+        .ticket-number-wrap label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 7px;
+        }
+        .ticket-number-box {
+            display: flex;
+            align-items: stretch;
+            gap: 8px;
+        }
+        .ticket-number-text {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 16px;
+            background: var(--bg-tertiary);
+            border: 1.5px dashed var(--border-light);
+            border-radius: 10px;
+            font-family: 'SF Mono', 'Fira Code', 'Inter', monospace;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            letter-spacing: 0.5px;
+            word-break: break-all;
+            text-align: center;
+        }
+        .copy-btn {
+            padding: 10px 18px;
+            border-radius: 10px;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .copy-btn.copied {
+            background: var(--color-resolved);
+        }
+        .copy-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--color-resolved);
+            margin-bottom: 14px;
+        }
+        .caution-box {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            text-align: left;
+            padding: 14px 16px;
+            background: linear-gradient(135deg, #fefce8, #fffbeb);
+            border: 1px solid #fde68a;
+            border-left: 4px solid var(--color-warning);
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .caution-icon {
+            flex-shrink: 0;
+            font-size: 1.3rem;
+            color: var(--color-warning);
+            margin-top: 2px;
+        }
+        .caution-text strong {
+            display: block;
+            font-size: 0.88rem;
+            color: var(--color-warning);
+            margin-bottom: 4px;
+        }
+        .caution-text p {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin: 0;
+        }
+        .caution-highlight {
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: underline;
+        }
+        .caution-text em {
+            font-style: italic;
+            color: var(--color-primary);
+        }
+        .success-actions {
+            display: flex;
+            justify-content: center;
+        }
+        .success-actions .btn {
+            padding: 12px 40px;
+            border-radius: 10px;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--color-primary), #4f46e5);
+        }
+
+        /* Mobile responsive: stack copy button below ticket number */
+        @media (max-width: 480px) {
+            .success-modal-body {
+                padding: 24px 20px;
+            }
+            .ticket-number-box {
+                flex-direction: column;
+            }
+            .copy-btn {
+                width: 100%;
+                justify-content: center;
+                padding: 12px;
+            }
+            .ticket-number-text {
+                padding: 16px;
+            }
+            .success-actions .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div style="width:100%;max-width:680px;">
+        <div class="form-card">
+            <div class="ticket-form-logo" style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+                <div style="display:flex;align-items:center;gap:16px;">
+                    <img src="https://jiangnanhotpot.com/cdn/shop/files/jiangnan-logo-transparent_40f90d62-6f5e-4f34-9a1a-cf948a106904.png?v=1721972026" alt="Logo">
+                    <div class="form-title">
+                        <h2>Submit Incident Ticket</h2>
+                        <p>Report an incident or issue at your branch</p>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-secondary" id="trackTicketBtn" style="flex-shrink:0;">
+                    <i class="fas fa-search"></i> Track Ticket Status
+                </button>
+            </div>
+
+            <form id="ticketForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="branch">Branch <span style="color:var(--color-danger);">*</span></label>
+                        <select id="branch" required>
+                            <option value="">Select Branch</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="priority">Priority Level <span style="color:var(--color-danger);">*</span></label>
+                        <select id="priority" required>
+                            <option value="">Select Priority</option>
+                            <option value="Low">Low</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name">Name of Reporter <span style="color:var(--color-danger);">*</span></label>
+                        <input type="text" id="name" placeholder="Enter Full Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="position">Position</label>
+                        <input type="text" id="position" placeholder="Store Manager / Supervisor">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="contact">Contact Number <span style="color:var(--color-danger);">*</span></label>
+                        <input type="tel" id="contact" placeholder="09XXXXXXXXX" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" placeholder="example@email.com">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="datetime">Date &amp; Time of Incident <span style="color:var(--color-danger);">*</span></label>
+                        <input type="text" id="datetime" placeholder="MM/DD/YYYY HH:MM" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="location">Specific Location <span style="color:var(--color-danger);">*</span></label>
+                        <input type="text" id="location" placeholder="Cashier / Dining Area / Kitchen" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="incident">Incident Type <span style="color:var(--color-danger);">*</span></label>
+                    <input type="text" id="incident" placeholder="Tip Pocketing / Pilferage / Overcharge" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Full Description <span style="color:var(--color-danger);">*</span></label>
+                    <textarea id="description" rows="5" placeholder="Describe the incident in detail..." required></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="reset" class="btn btn-secondary">Clear</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Submit Ticket</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<!-- Track Ticket Status Modal -->
+    <div class="modal-overlay" id="trackModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2><i class="fas fa-search"></i> Track Ticket Status</h2>
+                <button type="button" class="modal-close" id="closeTrackModal">&times;</button>
+            </div>
+<div class="modal-body">
+                <div class="track-input-row">
+                    <div class="track-form-group">
+                        <label for="trackTicketInput"><i class="fas fa-ticket-alt"></i> Ticket Number</label>
+                        <input type="text" id="trackTicketInput" class="track-input" placeholder="e.g. bnw-tix001" autocomplete="off">
+                    </div>
+                    <div class="track-form-group">
+                        <label for="trackContactInput"><i class="fas fa-envelope"></i> Contact/Email</label>
+                        <input type="text" id="trackContactInput" class="track-input" placeholder="Phone or email used" autocomplete="off">
+                    </div>
+                </div>
+                <div class="track-search-row">
+                    <button type="button" class="btn btn-primary" id="trackLookupBtn"><i class="fas fa-shield-alt"></i> Lookup Status</button>
+                </div>
+                <div id="trackValidationError" class="track-validation-error" style="display:none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="trackValidationMsg">Please fill in both fields.</span>
+                </div>
+                <div id="trackResult" class="track-result" style="display:none;">
+                    <div class="track-result-card">
+                        <div class="track-result-header">
+                            <span class="track-ticket-id" id="trackDisplayId"></span>
+                            <span class="track-status-badge" id="trackDisplayStatus"></span>
+                        </div>
+                        <div class="track-result-body">
+                            <div class="track-field">
+                                <label>Branch</label>
+                                <span id="trackDisplayBranch"></span>
+                            </div>
+<div class="track-field">
+                                <label>Incident Type</label>
+                                <span id="trackDisplayIncident"></span>
+                            </div>
+                            <div class="track-field track-field-full">
+                                <label>Description</label>
+                                <span id="trackDisplayDescription"></span>
+                            </div>
+                            <div class="track-field track-field-full">
+                                <label><i class="fas fa-check-circle"></i> Resolution Notes</label>
+                                <span id="trackDisplayResolution" style="white-space:pre-line;"></span>
+                            </div>
+                            <div class="track-field track-field-full" id="trackRejectionWrap" style="display:none;">
+                                <label><i class="fas fa-exclamation-circle"></i> Rejection Reason</label>
+                                <span id="trackDisplayRejection" style="border-color:var(--color-danger);background:var(--color-danger-bg);color:var(--color-danger);"></span>
+                            </div>
+                            <div class="track-field track-field-full">
+                                <label><i class="fas fa-paperclip"></i> Attachments</label>
+                                <span id="trackDisplayAttachments" style="padding:6px 10px;"></span>
+                            </div>
+                                                        <div class="track-field track-field-full" id="trackFootageSection">
+                            <div class="track-footage-header">
+                                <button type="button" class="btn btn-secondary btn-sm" id="trackRequestFootageBtn">
+                                    <i class="fas fa-video"></i> Request Additional Footage
+                                </button>
+                            </div>
+                            <div id="trackFootageBox">
+                                <label for="trackFootageDetails">Footage Details</label>
+                                <textarea id="trackFootageDetails" class="track-input" rows="3"
+                                          placeholder="Describe the specific footage required (e.g. camera angle, time range, location)..."></textarea>
+                                <div class="track-footage-actions">
+                                    <button type="button" class="btn btn-secondary btn-sm" id="trackCancelFootage">Cancel</button>
+                                    <button type="button" class="btn btn-primary btn-sm" id="trackSubmitFootage"><i class="fas fa-paper-plane"></i> Submit Request</button>
+                                </div>
+                            </div>
+                            <div id="trackFootageError" class="track-validation-error" style="display:none;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span id="trackFootageMsg">Please describe what footage is needed.</span>
+                            </div>
+                            <div id="trackFootageSuccess" class="track-success-notice" style="display:none;">
+                                <i class="fas fa-check-circle"></i>
+                                <span id="trackFootageSuccessMsg">Your footage request has been sent to the operator.</span>
+                            </div>
+                            <div id="trackFootageRequests" class="track-footage-history"></div>
+                        </div>
+                    </div>
+
+                        </div>
+                    </div>
+                </div>
+                <div id="trackNotFound" class="track-not-found" style="display:none;">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p id="trackNotFoundMsg">Ticket number and contact/email combination do not match. Please verify your credentials.</p>
+                </div>
+<div id="trackPendingApproval" class="track-not-found" style="display:none;">
+                    <i class="fas fa-hourglass-half" style="color:var(--color-warning);"></i>
+                    <p>Your ticket is still being processed. Ticket details and the resolution will be shown here once it has been reviewed and approved.</p>
+                </div>
+                <div class="track-loading" id="trackLoading" style="display:none;">
+                    <i class="fas fa-spinner fa-spin"></i> Verifying credentials...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal: Shows the generated ticket number + caution sign -->
+    <div class="modal-overlay" id="successModal">
+        <div class="modal-container success-modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-check-circle"></i> Ticket Submitted!</h2>
+                <button type="button" class="modal-close" id="closeSuccessModal">&times;</button>
+            </div>
+            <div class="modal-body success-modal-body">
+                <div class="success-icon">
+                    <i class="fas fa-ticket-alt"></i>
+                </div>
+                <div class="success-message">
+                    Please keep your ticket number. It is required to check the status of your ticket.
+                </div>
+                <div class="ticket-number-wrap">
+                    <label>Your Ticket Number</label>
+                    <div class="ticket-number-box">
+                        <span id="successTicketNumber" class="ticket-number-text">-</span>
+                        <button type="button" class="btn btn-primary copy-btn" id="copyTicketBtn">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                </div>
+                <div class="copy-status" id="copyStatus" style="display:none;">
+                    <i class="fas fa-check-circle"></i> Ticket number copied!
+                </div>
+                <div class="caution-box">
+                    <div class="caution-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="caution-text">
+                        <strong>Important!</strong>
+                        <p>Please <span class="caution-highlight">screenshot or save</span> your ticket number. You will need it (along with your contact/email) to view your ticket information later through the <em>"Track Ticket Status"</em> button.</p>
+                    </div>
+                </div>
+                <div class="success-actions">
+                    <button type="button" class="btn btn-primary" id="doneSuccessBtn"><i class="fas fa-thumbs-up"></i> Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="firebase.js"></script>
+    <script>
+        (function() {
+            var branchSelect = document.getElementById('branch');
+            var ticketForm = document.getElementById('ticketForm');
+
+            // REAL-TIME branch listener — syncs with main.html management page
+            db.collection('branches').onSnapshot(function(snapshot) {
+                var branches = [];
+                snapshot.forEach(function(doc) {
+                    branches.push({ id: doc.id, data: doc.data() });
+                });
+                branches.sort(function(a, b) {
+                    return (a.data.branchName || a.id).localeCompare(b.data.branchName || b.id);
+                });
+                var currentValue = branchSelect.value;
+                branchSelect.innerHTML = '<option value="">Select Branch</option>';
+                branches.forEach(function(branch) {
+                    var name = branch.data.branchName || branch.id;
+                    var opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    branchSelect.appendChild(opt);
+                });
+                if (currentValue && branches.some(function(b) { return (b.data.branchName || b.id) === currentValue; })) {
+                    branchSelect.value = currentValue;
+                }
+            }, function(err) {
+                console.error('Branch listener error:', err);
+                var fallback = ['Banawe','BF Homes','Eastwood','Fame','Gil Fernando','Hemady','Holy Spirit','MOA','Ortigas Center','Paseo','Promenade','SM Clark','SM Fairview','SM Marikina','SM Marilao','SM South Mall','SMDC Wind','SM East Ortigas','Sta. Rosa','SM Sucat','Tagaytay'];
+                branchSelect.innerHTML = '<option value="">Select Branch</option>';
+                fallback.forEach(function(name) {
+                    var opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    branchSelect.appendChild(opt);
+                });
+            });
+
+            // ---- TRACK TICKET STATUS MODAL (Two-Factor Verification) ----
+            // SECURITY: Lookup REQUIRES an exact ticket-number match (document ID)
+            // plus a matching contact/email. No partial or fuzzy matching is allowed.
+            var trackModal = document.getElementById('trackModal');
+            var trackBtn = document.getElementById('trackTicketBtn');
+            var closeTrackBtn = document.getElementById('closeTrackModal');
+            var trackInput = document.getElementById('trackTicketInput');
+            var trackContactInput = document.getElementById('trackContactInput');
+            var trackLookupBtn = document.getElementById('trackLookupBtn');
+            var trackResult = document.getElementById('trackResult');
+            var trackNotFound = document.getElementById('trackNotFound');
+            var trackNotFoundMsg = document.getElementById('trackNotFoundMsg');
+            var trackPendingApproval = document.getElementById('trackPendingApproval');
+            var trackLoading = document.getElementById('trackLoading');
+            var trackValidationError = document.getElementById('trackValidationError');
+            var trackValidationMsg = document.getElementById('trackValidationMsg');
+            var trackValidationMsg = document.getElementById('trackValidationMsg');
+            // Request Additional Footage state/elements
+            var trackFootageSection = document.getElementById('trackFootageSection');
+            var trackRequestFootageBtn = document.getElementById('trackRequestFootageBtn');
+            var trackFootageBox = document.getElementById('trackFootageBox');
+            var trackFootageDetails = document.getElementById('trackFootageDetails');
+            var trackSubmitFootage = document.getElementById('trackSubmitFootage');
+            var trackCancelFootage = document.getElementById('trackCancelFootage');
+            var trackFootageError = document.getElementById('trackFootageError');
+            var trackFootageMsg = document.getElementById('trackFootageMsg');
+            var trackFootageSuccess = document.getElementById('trackFootageSuccess');
+            var trackFootageRequests = document.getElementById('trackFootageRequests');
+            var currentTrackTicketId = null;
+            var currentTrackData = null;
+
+
+            function hideValidationError() {
+                trackValidationError.style.display = 'none';
+                trackInput.classList.remove('input-error');
+                trackContactInput.classList.remove('input-error');
+            }
+
+            function openTrackModal() {
+                trackModal.classList.add('active');
+                trackInput.value = '';
+                trackContactInput.value = '';
+                trackResult.style.display = 'none';
+                trackNotFound.style.display = 'none';
+                trackPendingApproval.style.display = 'none';
+                trackLoading.style.display = 'none';
+                hideValidationError();
+                hideValidationError();
+                // Reset the Request Additional Footage UI
+                currentTrackTicketId = null;
+                currentTrackData = null;
+                if (trackFootageBox) trackFootageBox.style.display = 'none';
+                if (trackFootageDetails) trackFootageDetails.value = '';
+                if (trackFootageError) trackFootageError.style.display = 'none';
+                if (trackFootageSuccess) trackFootageSuccess.style.display = 'none';
+                setTimeout(function() { trackInput.focus(); }, 100);
+
+                setTimeout(function() { trackInput.focus(); }, 100);
+            }
+
+            function closeTrackModalFn() {
+                trackModal.classList.remove('active');
+            }
+
+            if (trackBtn) trackBtn.addEventListener('click', openTrackModal);
+            if (closeTrackBtn) closeTrackBtn.addEventListener('click', closeTrackModalFn);
+            if (trackModal) {
+                trackModal.addEventListener('click', function(e) {
+                    if (e.target === trackModal) closeTrackModalFn();
+                });
+            }
+
+            // ============================================================
+            //  RESOLUTION NOTES HELPER
+            // ============================================================
+            // Shows only the resolution notes text (nested `resolution.notes`
+            // plus legacy `resolutionNotes`). No resolved-by/at info, no images.
+            function renderResolutionNotes(data) {
+                var resolutionEl = document.getElementById("trackDisplayResolution");
+                if (!resolutionEl) return;
+                var resolution = data.resolution || {};
+                var resNotes = resolution.notes || data.resolutionNotes || "";
+                resolutionEl.textContent = resNotes || '\u2014';
+            }
+
+
+            function displayTicketData(data) {
+                document.getElementById('trackDisplayId').textContent = data.ticketNumber || '\u2014';
+                var statusEl = document.getElementById('trackDisplayStatus');
+                var status = data.status || 'Pending';
+                // Superadmin approval flow: a resolved ticket only counts as fully
+                // "Resolved" after the superadmin approves it. While pending/rejected,
+                // the operator sees "Pending Approval" so the status is consistent
+                // with the admin dashboard and the Approvals tab.
+                var approvalStatus = data.approvalStatus || 'pending';
+                if (status === 'Resolved') {
+                    status = approvalStatus === 'approved' ? 'Resolved' : 'Pending Approval';
+                } else if (status === 'For Revision') {
+                    status = 'For Revision';
+                }
+                var statusClass = status.toLowerCase().replace(/\s+/g, '-');
+                statusEl.textContent = status;
+                statusEl.className = 'track-status-badge ' + statusClass;
+                // Rejection reason — shown only when the ticket was rejected
+                // (reads top-level `rejectionReason`, legacy `approvalReason`,
+                //  and the nested `rejection.reason` object written by the reject flow)
+                var rejectionWrap = document.getElementById('trackRejectionWrap');
+                var rejectionEl = document.getElementById('trackDisplayRejection');
+                if (rejectionWrap && rejectionEl) {
+                    var rejectionObj = (data.rejection && data.rejection.reason) ? data.rejection : null;
+                    var reasonText = data.rejectionReason || data.approvalReason || (rejectionObj ? rejectionObj.reason : '') || '';
+                    var rejectedBy = data.rejectedBy || (rejectionObj ? rejectionObj.rejectedBy : '') || '';
+                    if ((approvalStatus === 'rejected' || status === 'For Revision') && reasonText) {
+                        rejectionEl.textContent = reasonText +
+                            (rejectedBy ? ' \u2014 rejected by ' + rejectedBy : '');
+                        rejectionWrap.style.display = 'block';
+                    } else {
+                        rejectionEl.textContent = '';
+                        rejectionWrap.style.display = 'none';
+                    }
+                }
+document.getElementById('trackDisplayBranch').textContent = data.branch || '\u2014';
+                document.getElementById('trackDisplayIncident').textContent = data.incident || '\u2014';
+                document.getElementById('trackDisplayDescription').textContent = data.description || '\u2014';
+
+                // ===== Resolution notes (approved resolutions only) =====
+                // Rendered via the shared renderResolutionNotes() helper.
+                renderResolutionNotes(data);
+                // Render attachments inline (actual image/video previews)
+                var attachmentsEl = document.getElementById('trackDisplayAttachments');
+                var atts = data.attachments;
+                if (atts && atts.length > 0) {
+                    var html = '<div class="attachments-inline">';
+                    for (var i = 0; i < atts.length; i++) {
+                        var a = atts[i];
+                        var url = a.secure_url;
+                        var isImage = a.resource_type === 'image' || (a.format && /^(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(a.format));
+                        if (isImage) {
+                            html += '<img src="' + url + '" alt="Attachment" class="track-attachment-media" loading="lazy">';
+                        } else if (a.resource_type === 'video') {
+                            html += '<video src="' + url + '" controls class="track-attachment-media" preload="metadata"></video>';
+                        } else {
+                            html += '<a href="' + url + '" target="_blank" class="attachment-link" title="' + (a.public_id || 'Attachment') + '"><i class="fas fa-file"></i> Download File</a>';
+                        }
+                    }
+                    html += '</div>';
+                    attachmentsEl.innerHTML = html;
+                } else {
+                    attachmentsEl.innerHTML = '\u2014';
+                }
+                renderFootageRequests(data);
+                trackResult.style.display = 'block';
+
+                trackResult.style.display = 'block';
+            }
+
+            function lookupTicket() {
+                hideValidationError();
+
+                var ticketNumber = trackInput.value.trim();
+                var contactValue = trackContactInput.value.trim();
+
+                // Validate both fields are filled
+                if (!ticketNumber && !contactValue) {
+                    trackValidationMsg.textContent = 'Please enter both a ticket number and your contact/email.';
+                    trackValidationError.style.display = 'flex';
+                    trackInput.classList.add('input-error');
+                    trackContactInput.classList.add('input-error');
+                    trackInput.focus();
+                    return;
+                }
+                if (!ticketNumber) {
+                    trackValidationMsg.textContent = 'Please enter your ticket number.';
+                    trackValidationError.style.display = 'flex';
+                    trackInput.classList.add('input-error');
+                    trackInput.focus();
+                    return;
+                }
+                if (!contactValue) {
+                    trackValidationMsg.textContent = 'Please enter your contact number or email used during submission.';
+                    trackValidationError.style.display = 'flex';
+                    trackContactInput.classList.add('input-error');
+                    trackContactInput.focus();
+                    return;
+                }
+
+                trackResult.style.display = 'none';
+                trackNotFound.style.display = 'none';
+                trackPendingApproval.style.display = 'none';
+                trackLoading.style.display = 'block';
+
+                // Lookup ticket by exact document ID (ticket number).
+                // SECURITY: this is an exact match only — no partial/fuzzy matching.
+                db.collection('tickets').doc(ticketNumber).get().then(function(doc) {
+                    trackLoading.style.display = 'none';
+
+                    if (!doc.exists) {
+                        trackNotFoundMsg.textContent = 'No ticket found with that number. Please check and try again.';
+                        trackNotFound.style.display = 'block';
+                        return;
+                    }
+
+                    var data = doc.data();
+                    // Two-factor verification: check contact OR email match
+                    var contactMatch = data.contact && data.contact.toLowerCase() === contactValue.toLowerCase();
+                    var emailMatch = data.email && data.email.toLowerCase() === contactValue.toLowerCase();
+
+                    if (contactMatch || emailMatch) {
+                        // ===== Visibility rule: PENDING tickets are NOT shown =====
+                        // While a ticket is Pending, In Progress, awaiting
+                        // superadmin approval, or sent back For Revision, the
+                        // reporter only sees an informational notice. The full
+                        // ticket details (status + resolution) are revealed only
+                        // once the superadmin has APPROVED the resolution.
+                        var approvalStatus = data.approvalStatus || 'pending';
+                        var isApproved = approvalStatus === 'approved';
+                        if (!isApproved) {
+                            trackPendingApproval.style.display = 'block';
+                            return;
+                        }
+                        // Ticket is approved by the superadmin — show details
+                                                currentTrackTicketId = doc.id;
+                        currentTrackData = data;
+                        displayTicketData(data);
+                    } else {
+                        // Credentials do not match
+                        trackNotFoundMsg.textContent = 'Ticket number and contact/email combination do not match. Please verify your credentials.';
+                        trackNotFound.style.display = 'block';
+                    }
+                }).catch(function(err) {
+                    trackLoading.style.display = 'none';
+                    console.error('Lookup error:', err);
+                    trackNotFoundMsg.textContent = 'An error occurred while searching. Please try again.';
+                    trackNotFound.style.display = 'block';
+                });
+            }
+
+            if (trackLookupBtn) trackLookupBtn.addEventListener('click', lookupTicket);
+            if (trackInput) {
+                trackInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        trackContactInput.focus();
+                    }
+                });
+            }
+            if (trackContactInput) {
+                trackContactInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        lookupTicket();
+                    }
+                });
+            }
+
+                        // ============================================================
+            //  REQUEST ADDITIONAL FOOTAGE (Reviewer -> Operator hand-off)
+            //  Appends the request as a note onto the ticket's `comments`
+            //  array (type: "footage_request") and resets the ticket state
+            //  back to the operator: status "In Progress" + approval "pending".
+            //  Self-contained (this page does not load script.js).
+            // ============================================================
+            function formatFootageNoteTimestamp(ts) {
+                if (!ts) return '';
+                var d = (ts && typeof ts.toDate === 'function') ? ts.toDate() : new Date(ts);
+                if (!d || isNaN(d.getTime())) return '';
+                return d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+            }
+            function renderFootageRequests(data) {
+                if (!trackFootageRequests) return;
+                var notes = Array.isArray(data.comments) ? data.comments : [];
+                notes = notes.filter(function(n) { return n && n.type === 'footage_request'; });
+                trackFootageRequests.innerHTML = '';
+                if (notes.length === 0) return;
+                // Newest first
+                for (var i = notes.length - 1; i >= 0; i--) {
+                    var n = notes[i];
+                    var noteEl = document.createElement('div');
+                    noteEl.className = 'footage-note';
+                    var textEl = document.createElement('div');
+                    textEl.className = 'footage-note-text';
+                    textEl.textContent = n.text || '';
+                    noteEl.appendChild(textEl);
+                    var metaEl = document.createElement('div');
+                    metaEl.className = 'footage-note-meta';
+                    var meta = 'Requested by ' + (n.requestedBy || 'anonymous');
+                    var when = formatFootageNoteTimestamp(n.requestedAt);
+                    if (when) meta += ' on ' + when;
+                    metaEl.textContent = meta;
+                    noteEl.appendChild(metaEl);
+                    trackFootageRequests.appendChild(noteEl);
+                }
+            }
+            function toggleFootageBox(show) {
+                if (!trackFootageBox) return;
+                trackFootageBox.style.display = show ? 'block' : 'none';
+                if (!show) {
+                    if (trackFootageError) trackFootageError.style.display = 'none';
+                    if (trackFootageSuccess) trackFootageSuccess.style.display = 'none';
+                }
+                if (trackFootageDetails) trackFootageDetails.value = '';
+            }
+            function resetFootageForm() {
+                if (trackFootageBox) trackFootageBox.style.display = 'none';
+                if (trackFootageDetails) trackFootageDetails.value = '';
+                if (trackFootageError) {
+                    trackFootageError.style.display = 'none';
+                    if (trackFootageMsg) trackFootageMsg.textContent = '';
+                }
+                if (trackFootageSuccess) trackFootageSuccess.style.display = 'none';
+            }
+
+                        function submitFootageRequest() {
+                if (!currentTrackTicketId) {
+                    if (trackFootageMsg) trackFootageMsg.textContent = 'Please look up a ticket first.';
+                    if (trackFootageError) trackFootageError.style.display = 'flex';
+                    return;
+                }
+                var details = trackFootageDetails ? trackFootageDetails.value.trim() : '';
+                if (!details) {
+                    if (trackFootageMsg) trackFootageMsg.textContent = 'Please describe what footage is needed.';
+                    if (trackFootageError) trackFootageError.style.display = 'flex';
+                    if (trackFootageDetails) trackFootageDetails.focus();
+                    return;
+                }
+                trackFootageError.style.display = 'none';
+                trackSubmitFootage.disabled = true;
+                var originalLabel = trackSubmitFootage.innerHTML;
+                trackSubmitFootage.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+                var userEmail = (auth && auth.currentUser && auth.currentUser.email) || 'anonymous';
+                var note = {
+                    type: 'footage_request',
+                    text: details,
+                    requestedBy: userEmail,
+                    requestedAt: new Date()
+                };
+                // Attach the request as a note (arrayUnion-append to `comments`) and
+                // transition the ticket back to the operator ("In Progress").
+                db.collection('tickets').doc(currentTrackTicketId).update({
+                    status: 'In Progress',
+                    approvalStatus: 'pending',
+                    comments: firebase.firestore.FieldValue.arrayUnion(note),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }).then(function() {
+                    resetFootageForm();
+                    if (trackFootageSuccess) trackFootageSuccess.style.display = 'flex';
+                    // Optimistically re-render the note history (preserves existing notes).
+                    if (trackFootageRequests) {
+                        var existingComments = (currentTrackData && Array.isArray(currentTrackData.comments)) ? currentTrackData.comments : [];
+                        renderFootageRequests(Object.assign({}, currentTrackData || {}, { comments: existingComments.concat([note]) }));
+                    }
+                    // Immediately reflect the new status badge.
+                    var statusEl = document.getElementById('trackDisplayStatus');
+                    if (statusEl) {
+                        statusEl.textContent = 'In Progress';
+                        statusEl.className = 'track-status-badge in-progress';
+                    }
+                }).catch(function(err) {
+                    console.error('Footage request error:', err);
+                    if (trackFootageMsg) trackFootageMsg.textContent = 'Failed to send the request. Please try again.';
+                    if (trackFootageError) trackFootageError.style.display = 'flex';
+                }).finally(function() {
+                    if (trackSubmitFootage) {
+                        trackSubmitFootage.disabled = false;
+                        trackSubmitFootage.innerHTML = originalLabel;
+                    }
+                });
+            }
+            // Wire up the new tracking actions
+            if (trackRequestFootageBtn) trackRequestFootageBtn.addEventListener('click', function() { toggleFootageBox(true); });
+            if (trackCancelFootage) trackCancelFootage.addEventListener('click', function() { toggleFootageBox(false); });
+            if (trackSubmitFootage) trackSubmitFootage.addEventListener('click', submitFootageRequest);
+
+                        // ============================================================
+            //  REQUEST ADDITIONAL FOOTAGE (Reviewer -> Operator hand-off)
+            //  Appends the request as a note to the ticket's `comments`
+            //  array (type: "footage_request") and resets the ticket state
+            //  back to the operator: status "In Progress" + approval "pending".
+            //  Self-contained (this page does not load script.js).
+            // ============================================================
+            function formatFootageNoteTimestamp(ts) {
+                if (!ts) return '';
+                var d = (ts && typeof ts.toDate === 'function') ? ts.toDate() : new Date(ts);
+                if (!d || isNaN(d.getTime())) return '';
+                return d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+            }
+            function renderFootageRequests(data) {
+                if (!trackFootageRequests) return;
+                var notes = Array.isArray(data.comments) ? data.comments : [];
+                notes = notes.filter(function(n) { return n && n.type === 'footage_request'; });
+                trackFootageRequests.innerHTML = '';
+                if (notes.length === 0) return;
+                // Newest first
+                for (var i = notes.length - 1; i >= 0; i--) {
+                    var n = notes[i];
+                    var noteEl = document.createElement('div');
+                    noteEl.className = 'footage-note';
+                    var textEl = document.createElement('div');
+                    textEl.className = 'footage-note-text';
+                    textEl.textContent = n.text || '';
+                    noteEl.appendChild(textEl);
+                    var metaEl = document.createElement('div');
+                    metaEl.className = 'footage-note-meta';
+                    var meta = 'Requested by ' + (n.requestedBy || 'anonymous');
+                    var when = formatFootageNoteTimestamp(n.requestedAt);
+                    if (when) meta += ' on ' + when;
+                    metaEl.textContent = meta;
+                    noteEl.appendChild(metaEl);
+                    trackFootageRequests.appendChild(noteEl);
+                }
+            }
+            function toggleFootageBox(show) {
+                if (!trackFootageBox) return;
+                trackFootageBox.style.display = show ? 'block' : 'none';
+                if (!show) {
+                    if (trackFootageError) trackFootageError.style.display = 'none';
+                    if (trackFootageSuccess) trackFootageSuccess.style.display = 'none';
+                }
+                if (trackFootageDetails) trackFootageDetails.value = '';
+            }
+            function resetFootageForm() {
+                if (trackFootageBox) trackFootageBox.style.display = 'none';
+                if (trackFootageDetails) trackFootageDetails.value = '';
+                if (trackFootageError) {
+                    trackFootageError.style.display = 'none';
+                    if (trackFootageMsg) trackFootageMsg.textContent = '';
+                }
+                if (trackFootageSuccess) trackFootageSuccess.style.display = 'none';
+            }
+
+                        function submitFootageRequest() {
+                if (!currentTrackTicketId) {
+                    if (trackFootageMsg) trackFootageMsg.textContent = 'Please look up a ticket first.';
+                    if (trackFootageError) trackFootageError.style.display = 'flex';
+                    return;
+                }
+                var details = trackFootageDetails ? trackFootageDetails.value.trim() : '';
+                if (!details) {
+                    if (trackFootageMsg) trackFootageMsg.textContent = 'Please describe what footage is needed.';
+                    if (trackFootageError) trackFootageError.style.display = 'flex';
+                    if (trackFootageDetails) trackFootageDetails.focus();
+                    return;
+                }
+                trackFootageError.style.display = 'none';
+                trackSubmitFootage.disabled = true;
+                var originalLabel = trackSubmitFootage.innerHTML;
+                trackSubmitFootage.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+                var userEmail = (auth && auth.currentUser && auth.currentUser.email) || 'anonymous';
+                var note = {
+                    type: 'footage_request',
+                    text: details,
+                    requestedBy: userEmail,
+                    requestedAt: new Date()
+                };
+                // Attach the request as a note (arrayUnion-append to `comments`) and
+                // transition the ticket back to the operator ("In Progress").
+                db.collection('tickets').doc(currentTrackTicketId).update({
+                    status: 'In Progress',
+                    approvalStatus: 'pending',
+                    comments: firebase.firestore.FieldValue.arrayUnion(note),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }).then(function() {
+                    resetFootageForm();
+                    if (trackFootageSuccess) trackFootageSuccess.style.display = 'flex';
+                    // Optimistically re-render the note history (preserves existing notes).
+                    if (trackFootageRequests) {
+                        var existingComments = (currentTrackData && Array.isArray(currentTrackData.comments)) ? currentTrackData.comments : [];
+                        renderFootageRequests(Object.assign({}, currentTrackData || {}, { comments: existingComments.concat([note]) }));
+                    }
+                    // Immediately reflect the new status badge.
+                    var statusEl = document.getElementById('trackDisplayStatus');
+                    if (statusEl) {
+                        statusEl.textContent = 'In Progress';
+                        statusEl.className = 'track-status-badge in-progress';
+                    }
+                }).catch(function(err) {
+                    console.error('Footage request error:', err);
+                    if (trackFootageMsg) trackFootageMsg.textContent = 'Failed to send the request. Please try again.';
+                    if (trackFootageError) trackFootageError.style.display = 'flex';
+                }).finally(function() {
+                    if (trackSubmitFootage) {
+                        trackSubmitFootage.disabled = false;
+                        trackSubmitFootage.innerHTML = originalLabel;
+                    }
+                });
+            }
+            // Wire up the new tracking actions
+            if (trackRequestFootageBtn) trackRequestFootageBtn.addEventListener('click', function() { toggleFootageBox(true); });
+            if (trackCancelFootage) trackCancelFootage.addEventListener('click', function() { toggleFootageBox(false); });
+            if (trackSubmitFootage) trackSubmitFootage.addEventListener('click', submitFootageRequest);
+
+            // ---- SUCCESS MODAL (Ticket Number + Copy + Caution) ----
+            var successModal = document.getElementById('successModal');
+            var successTicketNumber = document.getElementById('successTicketNumber');
+            var copyTicketBtn = document.getElementById('copyTicketBtn');
+            var copyStatus = document.getElementById('copyStatus');
+            var closeSuccessBtn = document.getElementById('closeSuccessModal');
+            var doneSuccessBtn = document.getElementById('doneSuccessBtn');
+            var lastGeneratedTicket = '';
+
+            function openSuccessModal(ticketNumber) {
+                lastGeneratedTicket = ticketNumber;
+                if (successTicketNumber) successTicketNumber.textContent = ticketNumber;
+                // Reset copy state each time the modal opens
+                if (copyStatus) copyStatus.style.display = 'none';
+                if (copyTicketBtn) {
+                    copyTicketBtn.classList.remove('copied');
+                    copyTicketBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+                }
+                if (successModal) successModal.classList.add('active');
+                if (copyTicketBtn) setTimeout(function() { copyTicketBtn.focus(); }, 100);
+            }
+
+            function closeSuccessModalFn() {
+                if (successModal) successModal.classList.remove('active');
+                lastGeneratedTicket = '';
+            }
+
+            if (closeSuccessBtn) closeSuccessBtn.addEventListener('click', closeSuccessModalFn);
+            if (doneSuccessBtn) doneSuccessBtn.addEventListener('click', closeSuccessModalFn);
+            if (successModal) {
+                successModal.addEventListener('click', function(e) {
+                    if (e.target === successModal) closeSuccessModalFn();
+                });
+            }
+
+            // Copy to clipboard with fallback for older phones/browsers
+            function copyTicketNumber() {
+                if (!lastGeneratedTicket) return;
+                function onCopied() {
+                    if (copyStatus) copyStatus.style.display = 'flex';
+                    if (copyTicketBtn) {
+                        copyTicketBtn.classList.add('copied');
+                        copyTicketBtn.innerHTML = '<i class="fas fa-check"></i> Copied';
+                    }
+                    setTimeout(function() {
+                        if (copyStatus) copyStatus.style.display = 'none';
+                        if (copyTicketBtn) {
+                            copyTicketBtn.classList.remove('copied');
+                            copyTicketBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+                        }
+                    }, 2500);
+                }
+                // Modern API
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(lastGeneratedTicket).then(onCopied).catch(function() {
+                        fallbackCopy(lastGeneratedTicket, onCopied);
+                    });
+                } else if (window.clipboardData && window.clipboardData.setData) {
+                    // Old IE / some Android WebViews
+                    window.clipboardData.setData('Text', lastGeneratedTicket);
+                    onCopied();
+                } else {
+                    fallbackCopy(lastGeneratedTicket, onCopied);
+                }
+            }
+
+            function fallbackCopy(text, done) {
+                var textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.setAttribute('readonly', '');
+                textarea.style.position = 'fixed';
+                textarea.style.top = '-1000px';
+                textarea.style.left = '-1000px';
+                document.body.appendChild(textarea);
+                textarea.select();
+                textarea.setSelectionRange(0, textarea.value.length);
+                var ok = false;
+                try {
+                    ok = document.execCommand('copy');
+                } catch (err) { ok = false; }
+                document.body.removeChild(textarea);
+                if (ok && done) done();
+            }
+
+            if (copyTicketBtn) copyTicketBtn.addEventListener('click', copyTicketNumber);
+
+            // FORM SUBMIT
+            if (ticketForm) {
+                ticketForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    var branch = document.getElementById('branch').value;
+                    var priority = document.getElementById('priority').value;
+                    if (!branch) { alert('Please select a branch.'); return; }
+
+                    var branchCodes = {"Banawe":"bnw","BF Homes":"bf","Eastwood":"estw","Fame":"fame","Gil Fernando":"gilf","Hemady":"hmdy","Holy Spirit":"hspi","MOA":"moa","Ortigas Center":"ortc","Paseo":"pseo","Promenade":"prme","SM Clark":"smc","SM Fairview":"smf","SM Marikina":"smmk","SM Marilao":"smml","SM South Mall":"smsm","SMDC Wind":"smwd","SM East Ortigas":"smeo","Sta. Rosa":"str","SM Sucat":"smsu","Tagaytay":"tag"};
+                    var prefix = branchCodes[branch] || branch.toLowerCase().substring(0, 3);
+                    var generatedTicketID = '';
+
+                    db.collection('tickets').get().then(function(snapshot) {
+                        var count = 1;
+                        snapshot.forEach(function(ticket) {
+                            if (ticket.id.startsWith(prefix + "-tix")) count++;
+                        });
+                        var number = String(count).padStart(3, "0");
+                        var ticketID = prefix + "-tix" + number;
+                        generatedTicketID = ticketID;
+                        var ticketData = {
+                            ticketNumber: ticketID,
+                            branch: branch,
+                            name: document.getElementById('name').value,
+                            position: document.getElementById('position').value,
+                            contact: document.getElementById('contact').value,
+                            email: document.getElementById('email').value,
+                            datetime: document.getElementById('datetime').value,
+                            location: document.getElementById('location').value,
+                            incident: document.getElementById('incident').value,
+                            description: document.getElementById('description').value,
+                            priority: priority || 'Medium',
+                            status: 'Pending',
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        };
+                        return db.collection('tickets').doc(ticketID).set(ticketData);
+                    }).then(function() {
+                        // Show the success modal with the generated ticket number
+                        if (generatedTicketID) {
+                            openSuccessModal(generatedTicketID);
+                        }
+                        ticketForm.reset();
+                    }).catch(function(err) {
+                        console.error('Submit error:', err);
+                        alert('Failed to submit ticket. Try again.');
+                    });
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - CCTV Command Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="login.css">
+    <style>
+        .login-box { position: relative; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <img src="https://jiangnanhotpot.com/cdn/shop/files/jiangnan-logo-transparent_40f90d62-6f5e-4f34-9a1a-cf948a106904.png?v=1721972026" alt="Logo" class="login-logo">
+
+        <h2 id="authTitle">Admin Command Center</h2>
+
+        <!-- ================= LOGIN ================= -->
+        <form id="loginForm">
+            <input id="email" type="email" placeholder="Admin Email" required autocomplete="email">
+            <input id="password" type="password" placeholder="Password" required autocomplete="current-password">
+            <button id="loginBtn" type="submit">LOGIN</button>
+        </form>
+
+        <p id="message"></p>
+
+        <p class="toggle-link">Don't have an account? <a href="#" id="showRegister" onclick="showRegisterForm();return false;">Register</a></p>
+
+        <!-- ================= REGISTER ================= -->
+        <form id="registerForm" style="display:none;">
+            <input id="regName" type="text" placeholder="Full Name" required autocomplete="name">
+            <input id="regEmail" type="email" placeholder="Work Email" required autocomplete="email">
+            <input id="regPassword" type="password" placeholder="Password (min 6 characters)" required autocomplete="new-password">
+            <div class="reg-label">Select branches you need access to:</div>
+            <div id="regBranchCheckboxes" class="branch-checkbox-grid">
+                <p style="font-size:13px;color:#94a3b8;">Loading branches...</p>
+            </div>
+            <button id="registerBtn" type="submit">CREATE ACCOUNT</button>
+        </form>
+
+        <p id="regMessage"></p>
+
+        <p class="toggle-link" id="showLoginWrap" style="display:none;">Already have an account? <a href="#" id="showLogin" onclick="showLoginForm();return false;">Login</a></p>
+
+        <a href="main.html" class="back-link">← Back to Dashboard</a>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="firebase.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        // ==============================================================
+        //  REGISTRATION (inline so it never depends on an external file)
+        // ==============================================================
+        const registerForm = document.getElementById('registerForm');
+        const regNameInput = document.getElementById('regName');
+        const regEmailInput = document.getElementById('regEmail');
+        const regPasswordInput = document.getElementById('regPassword');
+        const regBranchCheckboxes = document.getElementById('regBranchCheckboxes');
+        const registerBtn = document.getElementById('registerBtn');
+        const regMessage = document.getElementById('regMessage');
+        const showRegister = document.getElementById('showRegister');
+        const showLogin = document.getElementById('showLogin');
+        const showLoginWrap = document.getElementById('showLoginWrap');
+        const authTitle = document.getElementById('authTitle');
+
+        const FALLBACK_BRANCHES = [
+            'Banawe', 'BF Homes', 'Eastwood', 'Fame', 'Gil Fernando', 'Hemady',
+            'Holy Spirit', 'MOA', 'Ortigas Center', 'Paseo', 'Promenade', 'SM Clark',
+            'SM Fairview', 'SM Marikina', 'SM Marilao', 'SM South Mall', 'SMDC Wind',
+            'SM East Ortigas', 'Sta. Rosa', 'SM Sucat', 'Tagaytay'
+        ];
+
+        function escapeRegHTML(str) {
+            if (str === null || str === undefined) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function showRegisterForm() {
+            if (document.getElementById('loginForm')) document.getElementById('loginForm').style.display = 'none';
+            if (registerForm) registerForm.style.display = 'block';
+            if (showLoginWrap) showLoginWrap.style.display = 'block';
+            if (showRegister) showRegister.closest('.toggle-link').style.display = 'none';
+            if (authTitle) authTitle.textContent = 'Create Your Account';
+            loadRegistrationBranches();
+        }
+
+        function showLoginForm() {
+            if (registerForm) registerForm.style.display = 'none';
+            if (document.getElementById('loginForm')) document.getElementById('loginForm').style.display = 'block';
+            if (showLoginWrap) showLoginWrap.style.display = 'none';
+            if (showRegister) showRegister.closest('.toggle-link').style.display = 'block';
+            if (authTitle) authTitle.textContent = 'Admin Command Center';
+        }
+        window.showRegisterForm = showRegisterForm;
+        window.showLoginForm = showLoginForm;
+
+        let regBranchesLoaded = false;
+        function renderRegBranches(names) {
+            if (!regBranchCheckboxes) return;
+            if (!names || !names.length) {
+                regBranchCheckboxes.innerHTML = '<p style="font-size:13px;color:#94a3b8;">No branches available yet.</p>';
+                return;
+            }
+            regBranchCheckboxes.innerHTML = names.map(function (n) {
+                return '<label class="checkbox-label"><input type="checkbox" name="regBranchAccess" value="' + escapeRegHTML(n) + '">' + escapeRegHTML(n) + '</label>';
+            }).join('');
+        }
+        async function loadRegistrationBranches() {
+            if (regBranchesLoaded || !regBranchCheckboxes) return;
+            try {
+                const b = await firestoreService.getBranches();
+                renderRegBranches(b.map(function (x) { return x.branchName || x.id || ''; }).filter(Boolean).sort(function (a, c) { return a.localeCompare(c); }));
+            } catch (err) {
+                console.error('Branch load failed, using fallback:', err);
+                renderRegBranches(FALLBACK_BRANCHES);
+            }
+            regBranchesLoaded = true;
+        }
+
+        // ---- Submit handler ----
+        if (registerForm) {
+            registerForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const name = ((regNameInput && regNameInput.value) || '').trim();
+                const email = ((regEmailInput && regEmailInput.value) || '').trim().toLowerCase();
+                const password = (regPasswordInput && regPasswordInput.value) || '';
+                const branchesSelected = Array.from(document.querySelectorAll('#regBranchCheckboxes input[name="regBranchAccess"]:checked')).map(function (i) { return i.value; });
+
+                function setMsg(txt, color) {
+                    if (!regMessage) return;
+                    regMessage.style.color = color || '#dc2626';
+                    regMessage.textContent = txt;
+                }
+
+                if (!name || !email || !password) return setMsg('Please fill in all fields.');
+                if (password.length < 6) return setMsg('Password must be at least 6 characters.');
+                if (!branchesSelected.length) return setMsg('Please select at least one branch.');
+
+                registerBtn.disabled = true;
+                registerBtn.textContent = 'CREATING ACCOUNT...';
+                setMsg('', '');
+
+                try {
+                    await auth.createUserWithEmailAndPassword(email, password);
+                                        await db.collection('users').doc(email).set({
+                        email: email,
+                        name: name,
+                        branches: branchesSelected,
+                        permissions: { viewOnly: false, canEdit: false, canDownload: false },
+                        role: 'owner',
+                        status: 'pending',
+                        registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+
+                    if (registerForm) registerForm.style.display = 'none';
+                    if (showLoginWrap) showLoginWrap.style.display = 'block';
+                    if (authTitle) authTitle.textContent = 'Pending Approval';
+                    setMsg('Account created! Your registration is now PENDING approval.', '#15803d');
+                    //setTimeout(function () { window.location.href = 'pending-approval.html'; }, 1600);
+                } catch (err) {
+                    console.error('Registration error:', err);
+                    setMsg(err.message);
+                    registerBtn.disabled = false;
+                    registerBtn.textContent = 'CREATE ACCOUNT';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+

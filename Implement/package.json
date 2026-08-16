@@ -1,0 +1,8 @@
+{
+  "name": "implement",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node --check firebase.js && node --check script.js && node --check js/auth.js && node --check js/notifications.js && node --check js/owner-dashboard.js"
+  }
+}
